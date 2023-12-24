@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webcam and Audio Recorder</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        text-align: center;
+        background-color: #f4f4f4;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      #buttonContainer {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+        max-width: 300px;
+        margin-top: 20px;
+      }
+
+      #recordButton,
+      #stopButton,
+      #whatsappButton {
+        background-color: rgb(0 107 179);
+        border-color: #7b68ee;
+        color: #fff;
+        margin-right: 10px;
+        cursor: pointer;
+        font-size: 1.25rem;
+      }
+
+      #recordButton:hover,
+      #stopButton:hover,
+      #whatsappButton:hover {
+        box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+        transform: scale(1.05);
+        border-color: #fff9;
+      }
+
+      #recordButton::before,
+      #stopButton::before,
+      #whatsappButton::before {
+        content: "";
+        position: absolute;
+        width: 100px;
+        height: 100%;
+        background-image: linear-gradient(
+          120deg,
+          rgba(255, 255, 255, 0) 30%,
+          rgba(255, 255, 255, 0.8),
+          rgba(255, 255, 255, 0) 70%
+        );
+        top: 0;
+        left: -100px;
+        opacity: 0.6;
+      }
+
+      #stopButton {
+        background-color: #d9534f;
+        border-color: #d9534f;
+      }
+
+      #whatsappButton {
+        background-color: #25d366;
+        border-color: #25d366;
+      }
+
+      #status {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #777;
+      }
+
+      #liveVideo,
+      #recordedVideo {
+        margin-top: 20px;
+        max-width: 100%;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Webcam and Audio Recorder</h1>
+
+    <div id="buttonContainer">
+      <button id="recordButton" onclick="toggleRecording()">
+        Start Recording
+      </button>
+      <button id="stopButton" onclick="stopRecording()" disabled>
+        Stop Recording
+      </button>
+      <button id="whatsappButton" onclick="sendToWhatsApp()" disabled>
+        Kirim ke WhatsApp
+      </button>
+    </div>
+
+    <div id="status"></div>
+
+    <video id="liveVideo" autoplay></video>
+    <video id="recordedVideo" controls></video>
+
+    <script>
+      let liveVideo;
+      let recordedVideo;
+      let mediaRecorder;
+      let recordedChunks = [];
+      let isRecording = false;
+
+      async function toggleRecording() {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+        isRecording = !isRecording;
+      }
+
+      async function startRecording() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+
+          liveVideo = document.getElementById("liveVideo");
+          recordedVideo = document.getElementById("recordedVideo");
+
+          liveVideo.srcObject = stream;
+          liveVideo.style.display = "block";
+
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = function (event) {
+            if (event.data.size > 0) {
+              recordedChunks.push(event.data);
+            }
+          };
+
+          mediaRecorder.onstop = function () {
+            const blob = new Blob(recordedChunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            recordedVideo.src = url;
+
+            liveVideo.style.display = "none";
+            recordedVideo.style.display = "block";
+
+            // Aktifkan tombol Kirim ke WhatsApp setelah merekam selesai
+            document.getElementById("whatsappButton").disabled = false;
+          };
+
+          mediaRecorder.start();
+          updateStatus("Recording started...");
+          document.getElementById("recordButton").disabled = true;
+          document.getElementById("stopButton").disabled = false;
+        } catch (error) {
+          console.error("Error accessing camera and microphone:", error);
+          alert(
+            "Error accessing camera and microphone. Please make sure they are connected and accessible."
+          );
+        }
+      }
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+          updateStatus("Recording stopped.");
+          document.getElementById("recordButton").disabled = false;
+          document.getElementById("stopButton").disabled = true;
+        }
+      }
+
+      function sendToWhatsApp() {
+        // Ganti '1234567890' dengan nomor WhatsApp calon mempelai
+        const phoneNumber = "6285695945514";
+
+        // Ganti 'https://example.com/upload' dengan URL tempat Anda menyimpan rekaman
+        const recordingUrl = "https://example.com/upload";
+
+        // Buat teks pesan dengan tautan rekaman
+        const message = `Halo! Saya merekam pesan khusus untukmu. Lihat disini: ${recordingUrl}`;
+
+        // Membuka WhatsApp dengan teks pesan
+        window.open(
+          `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`,
+          "_blank"
+        );
+      }
+
+      function updateStatus(message) {
+        document.getElementById("status").innerText = message;
+      }
+    </script>
+  </body>
+</html>
